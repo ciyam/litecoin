@@ -1418,10 +1418,14 @@ bool CTransaction::CheckInputs(CValidationState &state, CCoinsViewCache &inputs,
                     return state.Invalid(error("CheckInputs() : tried to spend coinbase at depth %d", nSpendHeight - coins.nHeight));
             }
 
-            // Check for negative or overflow input values
-            nValueIn += coins.vout[prevout.n].nValue;
-            if (!MoneyRange(coins.vout[prevout.n].nValue) || !MoneyRange(nValueIn))
+            // Check for unspendable, negative or overflow input values
+            int64 nMinimumSpendable = 1000; // KLUDGE: Need to calc this value.
+            int64 nInput = coins.vout[prevout.n].nValue;
+            if( nInput && nInput < nMinimumSpendable )
+               return state.DoS(100, error("CheckInputs() : txin value is unspendable"));
+            if (!MoneyRange(nInput) || !MoneyRange(nValueIn))
                 return state.DoS(100, error("CheckInputs() : txin values out of range"));
+            nValueIn += nInput;
 
         }
 
